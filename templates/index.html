@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>玄学寻物助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 40px;
+            text-align: center;
+            color: #1d1d1f;
+        }
+
+        .input-section {
+            max-width: 600px;
+            margin: 0 auto 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 17px;
+            font-weight: 500;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 17px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.05);
+            color: #1d1d1f;
+            transition: all 0.2s ease;
+        }
+
+        select:focus {
+            outline: none;
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            font-size: 17px;
+            font-weight: 500;
+            color: #fff;
+            background: #0071e3;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: #0077ed;
+            transform: translateY(-1px);
+        }
+
+        .results-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .result-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .result-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-card h2 {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: #1d1d1f;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0071e3;
+        }
+
+        .result-content {
+            font-size: 16px;
+            color: #424245;
+            line-height: 1.6;
+        }
+
+        .result-content ul {
+            list-style: none;
+            margin: 10px 0;
+        }
+
+        .result-content li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .result-content li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #0071e3;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .payment-banner {
+            background: #f5f0ff;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #d9c7ff;
+            text-align: center;
+        }
+
+        .payment-banner p {
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #5a3f8c;
+        }
+
+        .payment-button {
+            background: #7c4dff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .payment-button:hover {
+            background: #6a3aef;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>玄学寻物助手</h1>
+
+        {% if not has_confirmed_order %}
+        <div class="payment-banner">
+            <p>使用玄学寻物助手需要支付小额费用（1元）</p>
+            <form action="{{ url_for('create_order') }}" method="post">
+                <button type="submit" class="payment-button">去支付</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="input-section">
+            <div class="form-group">
+                <label>农历月份</label>
+                <select id="month">
+                    <option value="1">正月</option>
+                    <option value="2">二月</option>
+                    <option value="3">三月</option>
+                    <option value="4">四月</option>
+                    <option value="5">五月</option>
+                    <option value="6">六月</option>
+                    <option value="7">七月</option>
+                    <option value="8">八月</option>
+                    <option value="9">九月</option>
+                    <option value="10">十月</option>
+                    <option value="11">十一月</option>
+                    <option value="12">十二月</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>农历日期</label>
+                <select id="day">
+                    <!-- 将由JavaScript动态生成 -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>时辰</label>
+                <select id="hour">
+                    <option value="1">子时 (23:00-01:00)</option>
+                    <option value="2">丑时 (01:00-03:00)</option>
+                    <option value="3">寅时 (03:00-05:00)</option>
+                    <option value="4">卯时 (05:00-07:00)</option>
+                    <option value="5">辰时 (07:00-09:00)</option>
+                    <option value="6">巳时 (09:00-11:00)</option>
+                    <option value="7">午时 (11:00-13:00)</option>
+                    <option value="8">未时 (13:00-15:00)</option>
+                    <option value="9">申时 (15:00-17:00)</option>
+                    <option value="10">酉时 (17:00-19:00)</option>
+                    <option value="11">戌时 (19:00-21:00)</option>
+                    <option value="12">亥时 (21:00-23:00)</option>
+                </select>
+            </div>
+
+            <button onclick="calculateAll()" {% if not has_confirmed_order %}disabled{% endif %} id="start-button">开始寻物</button>
+        </div>
+
+        <div class="results-section">
+            <div id="traditional-result" class="result-card hidden">
+                <h2>传统寻物法</h2>
+                <div class="result-content"></div>
+            </div>
+
+            <div id="wind-result" class="result-card hidden">
+                <h2>风卦寻物法（最准）</h2>
+                <div class="result-content"></div>
+            </div>
+
+            <div id="sixren-result" class="result-card hidden">
+                <h2>小六壬寻物法</h2>
+                <div class="result-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 天干地支转换规则
+        const stemBranchRules = {
+            stems: ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'],
+            branches: ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+        };
+
+        // 落空规则
+        const emptyRules = {
+            '甲己': ['申', '酉'],
+            '乙庚': ['午', '未'],
+            '丙辛': ['辰', '巳'],
+            '丁壬': ['寅', '卯'],
+            '戊癸': ['子', '丑']
+        };
+
+        // 方位对应
+        const directionMap = {
+            '建': '正东',
+            '除': '东南',
+            '满': '正南',
+            '平': '西南',
+            '定': '正西',
+            '执': '西北',
+            '破': '正北',
+            '危': '东北'
+        };
+
+        // 位置建议
+        const locationMap = {
+            '子丑': ['树林中', '木质物品附近'],
+            '寅卯': ['高处', '山坡上'],
+            '辰巳': ['向亲友打听'],
+            '午未': ['桌子', '柜子', '抽屉等平面'],
+            '申酉': ['沿路寻找'],
+            '戌亥': ['半空悬挂处']
+        };
+
+        // 风卦提示信息
+        const windTips = {
+            '天': '逢天在眼前一物品就在方圆两米以内，认真查找身边可寻回失物。',
+            '地': '逢地得团园一是你的终究是你的，不用多费心寻找，最后会回到你手里。',
+            '人': '逢人人得信—发现丢失物品的时候，兴许可以借助见到的第一个人寻回失物。',
+            '水': '逢水水边显—-物品遗失在水边，仔细回想去过哪些有水的地方。',
+            '屋': '逢屋家里找—没有落入外人之手，尚在家中，多找一找就能找到。',
+            '风': '逢风影无踪—不用费心了，风随而动，物已丢失，基本是找不回来了。',
+            '叫': '逢叫正得行—找失物时如果迎面有人喊你，他或许知道失物的位置及消息，能够帮助到你。'
+        };
+
+        // 小六壬循环列表和组合映射
+        const circularList = ['大安', '留连', '速喜', '赤口', '小吉', '空亡'];
+        const combinationMap = {
+            '大安+大安': '失物家中寻',
+            '大安+留连': '失物西北去',
+            '大安+速喜': '失物当日见',
+            '大安+赤口': '失物不用找',
+            '大安+小吉': '失物不出门',
+            '大安+空亡': '失物无影踪',
+            '留连+大安': '失物家中藏',
+            '留连+速喜': '失物三天现',
+            '留连+赤口': '失物准不见',
+            '留连+小吉': '失物东南去',
+            '留连+空亡': '失物不见面',
+            '留连+留连': '失物在南方',
+            '小吉+空亡': '失物东北找',
+            '小吉+大安': '失物自己出',
+            '小吉+留连': '失物上西南',
+            '小吉+速喜': '失物在院里',
+            '小吉+赤口': '失物已丢失',
+            '小吉+小吉': '失物西南方',
+            '空亡+大安': '失物反复间',
+            '空亡+留连': '失物不复还',
+            '空亡+速喜': '失物在家里',
+            '空亡+赤口': '失物往远走',
+            '空亡+小吉': '失物回家里',
+            '空亡+空亡': '失物寻不见',
+            '速喜+赤口': '失物在正北',
+            '速喜+小吉': '失物在家里',
+            '速喜+空亡': '失物不久见',
+            '速喜+大安': '失物不会丢',
+            '速喜+留连': '失物无音讯',
+            '速喜+速喜': '失物在正南到正南偏西十五度',
+            '赤口+小吉': '失物无信息',
+            '赤口+空亡': '失物不用寻',
+            '赤口+大安': '失物东北寻',
+            '赤口+留连': '失物寻不到',
+            '赤口+速喜': '失物有着落',
+            '赤口+赤口': '失物在正西'
+        };
+
+        // 动态填充日期选项
+        function populateDays() {
+            const daySelect = document.getElementById('day');
+            let options = '';
+            for (let i = 1; i <= 31; i++) {
+                options += `<option value="${i}">${i}日</option>`;
+            }
+            daySelect.innerHTML = options;
+        }
+
+        // 计算传统寻物法结果
+        function calculateTraditional(month, day, hour) {
+            const baseDate = new Date('1984-01-01');
+            const currentDate = new Date(2024, month - 1, day);
+            const days = Math.floor((currentDate - baseDate) / (24 * 60 * 60 * 1000));
+            const stem = stemBranchRules.stems[days % 10];
+            const branch = stemBranchRules.branches[hour - 1];
+
+            const isEmpty = Object.entries(emptyRules).some(([stems, branches]) =>
+                stems.includes(stem) && branches.includes(branch)
+            );
+
+            let result = '';
+            if (isEmpty) {
+                result = `<p class="warning">分析结果：物品可能较难找回</p>
+                         <p>原因：根据天干地支判断，此时物品落空</p>`;
+            } else {
+                const direction = Object.values(directionMap)[days % 8];
+                const locations = [];
+                for (let [key, value] of Object.entries(locationMap)) {
+                    if (key.includes(branch)) {
+                        locations.push(...value);
+                    }
+                }
+
+                result = `<p class="success">分析结果：物品有望找回</p>
+                         <p>建议寻找方位：${direction}</p>
+                         <p>可能的位置：</p>
+                         <ul>
+                             ${locations.map(loc => `<li>${loc}</li>`).join('')}
+                         </ul>
+                         <p>提示：以上建议仅供参考，请结合实际情况寻找</p>`;
+            }
+
+            return result;
+        }
+
+        // 计算风卦寻物法结果
+        function calculateWind(month, day, hour) {
+            const order = ['天', '地', '人', '水', '屋', '风', '叫'];
+            const total = month + day + hour - 2;
+            const remainder = ((total % 7) + 7) % 7;
+
+            const resultSymbol = remainder === 0 ? '叫' : order[remainder - 1];
+            return `<p>卦象：${resultSymbol}</p>
+                   <p>${windTips[resultSymbol]}</p>`;
+        }
+
+        // 计算小六壬寻物法结果
+        function calculateSixRen(month, day, hour) {
+            let currentIndex = 0;
+            const steps = [month, day, hour];
+            let stops = [];
+
+            steps.forEach(step => {
+                currentIndex = (currentIndex + step - 1) % circularList.length;
+                stops.push(circularList[currentIndex]);
+            });
+
+            const first = stops[1];
+            const second = stops[2];
+            const key = `${first}+${second}`;
+            const message = combinationMap[key] || '未找到对应的失物信息。';
+
+            return `<p>卦象：${first} ${second}</p>
+                   <p>${message}</p>`;
+        }
+
+        // 显示结果卡片的动画
+        function showResultCard(cardId, delay = 0) {
+            const card = document.getElementById(cardId);
+            card.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.add('show');
+            }, delay);
+        }
+
+        // 计算所有结果
+        function calculateAll() {
+            {% if not has_confirmed_order %}
+            // 如果未支付，显示提示并返回
+            alert('请先完成支付后再使用寻物功能！');
+            return;
+            {% endif %}
+
+            const month = parseInt(document.getElementById('month').value);
+            const day = parseInt(document.getElementById('day').value);
+            const hour = parseInt(document.getElementById('hour').value);
+
+            // 隐藏所有结果卡片
+            document.querySelectorAll('.result-card').forEach(card => {
+                card.classList.remove('show');
+                card.classList.add('hidden');
+            });
+
+            // 计算并显示传统寻物法结果
+            document.querySelector('#traditional-result .result-content').innerHTML =
+                calculateTraditional(month, day, hour);
+            showResultCard('traditional-result', 0);
+
+            // 计算并显示风卦寻物法结果
+            document.querySelector('#wind-result .result-content').innerHTML =
+                calculateWind(month, day, hour);
+            showResultCard('wind-result', 200);
+
+            // 计算并显示小六壬寻物法结果
+            document.querySelector('#sixren-result .result-content').innerHTML =
+                calculateSixRen(month, day, hour);
+            showResultCard('sixren-result', 400);
+        }
+
+        // 初始化
+        populateDays();
+    </script>
+</body>
+
+</html> 

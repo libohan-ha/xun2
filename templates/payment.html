@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付 - 玄学寻物助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #1d1d1f;
+        }
+
+        .payment-info {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .payment-info p {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .payment-info .price {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ff3b30;
+            margin: 15px 0;
+        }
+
+        .qr-code {
+            margin: 20px auto;
+            padding: 15px;
+            border: 1px dashed #ccc;
+            border-radius: 10px;
+            width: 220px;
+            height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+        }
+
+        .qr-code img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .note {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 10px 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: #fff;
+            background: #0071e3;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background: #0077ed;
+            transform: translateY(-1px);
+        }
+
+        .button.secondary {
+            background: #666;
+        }
+
+        .button.secondary:hover {
+            background: #555;
+        }
+
+        .steps {
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .steps ol {
+            padding-left: 25px;
+        }
+
+        .steps li {
+            margin-bottom: 10px;
+        }
+        
+        /* 移动设备适配 */
+        @media (max-width: 600px) {
+            .container {
+                margin: 20px auto;
+                padding: 20px;
+                width: 100%;
+            }
+            
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .payment-info {
+                padding: 15px;
+            }
+            
+            .qr-code {
+                width: 200px;
+                height: 200px;
+                padding: 10px;
+            }
+            
+            .button {
+                width: 100%;
+                margin: 10px 0;
+            }
+            
+            .steps {
+                font-size: 14px;
+            }
+            
+            .steps li {
+                margin-bottom: 8px;
+            }
+        }
+        
+        /* 竖屏手机适配 */
+        @media (max-width: 400px) {
+            .container {
+                padding: 15px;
+                margin: 10px auto;
+            }
+            
+            h1 {
+                font-size: 22px;
+            }
+            
+            .qr-code {
+                width: 180px;
+                height: 180px;
+            }
+            
+            .payment-info .price {
+                font-size: 22px;
+            }
+        }
+        
+        /* 增加扫码成功提示 */
+        .scan-success {
+            display: none;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .scan-success.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>支付 - 玄学寻物助手</h1>
+
+        <div class="payment-info">
+            <p>请使用微信扫描下方二维码支付</p>
+            <div class="price">¥1.00</div>
+            
+            <div class="qr-code">
+                <!-- 使用根目录中的1.jpg作为支付二维码 -->
+                <img src="{{ url_for('qr_code') }}" alt="支付二维码" id="qr-code-img">
+            </div>
+            
+            <div class="scan-success" id="scan-success">
+                <strong>扫码成功!</strong> 请在微信中完成支付操作。
+            </div>
+            
+            <p class="note">扫码后请支付1元</p>
+
+            <div class="steps">
+                <ol>
+                    <li>请使用微信扫描上方的二维码</li>
+                    <li>完成1元支付</li>
+                    <li>点击下方"我已完成支付"按钮</li>
+                    <li>等待管理员确认（通常1-5分钟）</li>
+                </ol>
+            </div>
+        </div>
+
+        <form action="{{ url_for('confirm_payment') }}" method="post">
+            <button type="submit" class="button" id="confirm-button">我已完成支付</button>
+        </form>
+        <a href="{{ url_for('home') }}" class="button secondary">返回</a>
+    </div>
+    
+    <script>
+        // 检测用户是否扫描了二维码（模拟）
+        const qrCodeImg = document.getElementById('qr-code-img');
+        const scanSuccess = document.getElementById('scan-success');
+        const confirmButton = document.getElementById('confirm-button');
+        
+        // 模拟用户点击二维码时的扫码操作
+        qrCodeImg.addEventListener('click', function() {
+            // 在移动设备上，点击二维码可能意味着用户正在尝试扫描
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                setTimeout(function() {
+                    scanSuccess.classList.add('show');
+                    confirmButton.style.backgroundColor = '#34c759';
+                }, 500);
+            }
+        });
+    </script>
+</body>
+
+</html> 

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>等待确认 - 玄学寻物助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #1d1d1f;
+        }
+
+        .waiting-info {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .waiting-info p {
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .order-number {
+            font-family: monospace;
+            font-size: 18px;
+            background: #f5f5f7;
+            padding: 10px;
+            border-radius: 5px;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(0, 113, 227, 0.2);
+            border-radius: 50%;
+            border-top-color: #0071e3;
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px 0;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 20px 0;
+            color: #0071e3;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 10px 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: #fff;
+            background: #0071e3;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background: #0077ed;
+            transform: translateY(-1px);
+        }
+        
+        .elapsed-time {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(0, 113, 227, 0.2);
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #0071e3;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .refresh-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>等待确认</h1>
+
+        <div class="waiting-info">
+            <p>您的支付正在等待管理员确认</p>
+            <p>订单号: <span class="order-number">{{ order_number }}</span></p>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            
+            <div class="loading"></div>
+            <div class="status" id="status">正在等待确认...</div>
+            <div class="elapsed-time">已等待时间: <span id="elapsed-time">0秒</span></div>
+            <div class="refresh-info">下次自动检查: <span id="next-check">5秒</span>后</div>
+            
+            <p>确认后将自动跳转到寻物页面</p>
+            <p>如果长时间未确认，请联系管理员</p>
+        </div>
+
+        <a href="{{ url_for('home') }}" class="button" id="return-button" style="display: none;">进入寻物</a>
+    </div>
+
+    <script>
+        // 订单号
+        const orderNumber = "{{ order_number }}";
+        // 轮询间隔（毫秒）
+        const pollInterval = 5000;
+        // 轮询计数
+        let pollCount = 0;
+        // 最大轮询次数 (5分钟)
+        const maxPollCount = 60;
+        // 开始时间
+        const startTime = new Date();
+        // 倒计时间隔
+        let countdownInterval;
+        // 倒计时计数
+        let countdown = pollInterval / 1000;
+        
+        // 更新已等待时间
+        function updateElapsedTime() {
+            const now = new Date();
+            const elapsedSeconds = Math.floor((now - startTime) / 1000);
+            let elapsedText = '';
+            
+            if (elapsedSeconds < 60) {
+                elapsedText = `${elapsedSeconds}秒`;
+            } else {
+                const minutes = Math.floor(elapsedSeconds / 60);
+                const seconds = elapsedSeconds % 60;
+                elapsedText = `${minutes}分${seconds}秒`;
+            }
+            
+            document.getElementById('elapsed-time').textContent = elapsedText;
+            
+            // 更新进度条
+            if (pollCount < maxPollCount) {
+                const progress = (pollCount / maxPollCount) * 100;
+                document.getElementById('progress-bar').style.width = `${progress}%`;
+            }
+        }
+        
+        // 更新倒计时
+        function updateCountdown() {
+            countdown--;
+            document.getElementById('next-check').textContent = countdown + '秒';
+            
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+            }
+        }
+
+        // 轮询检查订单状态
+        function checkOrderStatus() {
+            pollCount++;
+            countdown = pollInterval / 1000;
+            
+            fetch(`/check_order_status?order_number=${orderNumber}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (data.confirmed) {
+                            // 订单已确认
+                            document.getElementById('status').textContent = '支付已确认！';
+                            document.getElementById('status').style.color = '#34c759';
+                            document.querySelector('.loading').style.display = 'none';
+                            document.getElementById('return-button').style.display = 'inline-block';
+                            document.getElementById('progress-bar').style.width = '100%';
+                            document.getElementById('progress-bar').style.backgroundColor = '#34c759';
+                            
+                            // 清除倒计时
+                            clearInterval(countdownInterval);
+                            document.querySelector('.refresh-info').style.display = 'none';
+                            
+                            // 3秒后自动跳转
+                            setTimeout(() => {
+                                window.location.href = "{{ url_for('home') }}";
+                            }, 3000);
+                            
+                            return;
+                        }
+                    }
+                    
+                    // 如果未超过最大轮询次数，继续轮询
+                    if (pollCount < maxPollCount) {
+                        // 重置倒计时
+                        countdown = pollInterval / 1000;
+                        countdownInterval = setInterval(updateCountdown, 1000);
+                        
+                        setTimeout(checkOrderStatus, pollInterval);
+                    } else {
+                        // 超时处理
+                        document.getElementById('status').textContent = '等待超时，请联系管理员';
+                        document.getElementById('status').style.color = '#ff3b30';
+                        document.querySelector('.loading').style.display = 'none';
+                        document.getElementById('return-button').textContent = '返回首页';
+                        document.getElementById('return-button').style.display = 'inline-block';
+                        document.getElementById('progress-bar').style.backgroundColor = '#ff3b30';
+                        
+                        // 清除倒计时
+                        clearInterval(countdownInterval);
+                        document.querySelector('.refresh-info').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking order status:', error);
+                    document.getElementById('status').textContent = '检查订单状态出错，请稍后再试';
+                    document.getElementById('status').style.color = '#ff3b30';
+                    
+                    // 出错后仍继续尝试，除非超过最大轮询次数
+                    if (pollCount < maxPollCount) {
+                        // 重置倒计时
+                        countdown = pollInterval / 1000;
+                        countdownInterval = setInterval(updateCountdown, 1000);
+                        
+                        setTimeout(checkOrderStatus, pollInterval);
+                    } else {
+                        // 清除倒计时
+                        clearInterval(countdownInterval);
+                        document.querySelector('.refresh-info').style.display = 'none';
+                    }
+                });
+        }
+
+        // 页面加载后立即开始轮询和更新计时器
+        window.addEventListener('load', () => {
+            // 设置更新等待时间的定时器
+            setInterval(updateElapsedTime, 1000);
+            
+            // 开始倒计时
+            countdownInterval = setInterval(updateCountdown, 1000);
+            
+            // 开始检查订单状态
+            setTimeout(checkOrderStatus, 1000);
+        });
+    </script>
+</body>
+
+</html>
