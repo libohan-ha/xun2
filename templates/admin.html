@@ -463,7 +463,15 @@
     });
 </script>
 
-
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.timestamp').forEach(function (element) {
+            const utcTime = element.textContent.trim();
+            const localTime = new Date(utcTime + ' UTC').toLocaleString();
+            element.textContent = localTime;
+        });
+    });
+</script>
 
 </body>
 
