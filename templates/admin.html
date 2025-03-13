@@ -220,6 +220,39 @@
             border-color: #0071e3;
         }
         
+        /* 添加表格容器的滑动样式 */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        /* 滑动指示器样式 */
+        .swipe-indicator {
+            display: none;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        @media (max-width: 768px) {
+            .swipe-indicator {
+                display: block;
+            }
+            
+            .filter-bar {
+                overflow-x: auto;
+                padding-bottom: 5px;
+            }
+            
+            .card-body {
+                padding: 15px 10px;
+            }
+        }
+        
         /* 统计卡片样式 */
         .stats-container {
             display: grid;
@@ -324,45 +357,52 @@
                     <button class="filter-btn" onclick="filterOrders('confirmed')">已确认</button>
                 </div>
 
+                <!-- 添加滑动提示 -->
+                <div class="swipe-indicator">
+                    <i>← 左右滑动查看更多 →</i>
+                </div>
+
                 {% if orders %}
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>订单号</th>
-                                <th>创建时间</th>
-                                <th>状态</th>
-                                <th>确认时间</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in orders %}
-                                <tr class="order-row {{ 'confirmed' if order.confirmed else 'pending' }}">
-                                    <td class="order-id">{{ order.order_number }}</td>
-                                    <td class="timestamp">{{ order.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                    <td>
-                                        {% if order.confirmed %}
-                                            <span class="status-badge status-confirmed">已确认</span>
-                                        {% else %}
-                                            <span class="status-badge status-pending">待确认</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="timestamp">
-                                        {{ order.confirmed_at.strftime('%Y-%m-%d %H:%M:%S') if order.confirmed_at else '-' }}
-                                    </td>
-                                    <td>
-                                        {% if not order.confirmed %}
-                                            <form class="form-inline" action="{{ url_for('admin_confirm_order', order_number=order.order_number) }}" method="post">
-                                                <button type="submit" class="btn btn-sm">确认支付</button>
-                                            </form>
-                                        {% else %}
-                                            <span>-</span>
-                                        {% endif %}
-                                    </td>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>订单号</th>
+                                    <th>创建时间</th>
+                                    <th>状态</th>
+                                    <th>确认时间</th>
+                                    <th>操作</th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                    <tr class="order-row {{ 'confirmed' if order.confirmed else 'pending' }}">
+                                        <td class="order-id">{{ order.order_number }}</td>
+                                        <td class="timestamp">{{ order.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                        <td>
+                                            {% if order.confirmed %}
+                                                <span class="status-badge status-confirmed">已确认</span>
+                                            {% else %}
+                                                <span class="status-badge status-pending">待确认</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="timestamp">
+                                            {{ order.confirmed_at.strftime('%Y-%m-%d %H:%M:%S') if order.confirmed_at else '-' }}
+                                        </td>
+                                        <td>
+                                            {% if not order.confirmed %}
+                                                <form class="form-inline" action="{{ url_for('admin_confirm_order', order_number=order.order_number) }}" method="post">
+                                                    <button type="submit" class="btn btn-sm">确认支付</button>
+                                                </form>
+                                            {% else %}
+                                                <span>-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 {% else %}
                     <div class="empty-state">
                         <p>暂无订单数据</p>
@@ -403,7 +443,28 @@
 
         // 设置当前时间作为刷新时间
         document.getElementById('refresh-time').textContent = new Date().toLocaleString();
+        
+        // 检测移动设备并显示滑动指示
+        document.addEventListener('DOMContentLoaded', function() {
+            const tableContainer = document.querySelector('.table-responsive');
+            if (tableContainer && tableContainer.scrollWidth > tableContainer.clientWidth) {
+                document.querySelector('.swipe-indicator').style.display = 'block';
+            }
+        });
     </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.timestamp').forEach(function (element) {
+            const utcTime = element.textContent.trim();
+            const localTime = new Date(utcTime + ' UTC').toLocaleString();
+            element.textContent = localTime;
+        });
+    });
+</script>
+
+
+
 </body>
 
 </html> 
